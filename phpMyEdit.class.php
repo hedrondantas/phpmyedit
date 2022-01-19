@@ -37,6 +37,8 @@
 
 function fhtmlspecialchars($myString) {
   // in PHP 5.4 the default encoding used by htmlspecialchars() was changed.
+ // encodes values to utf-8 
+  $myString = utf8_encode($myString);
   return htmlspecialchars($myString, ENT_COMPAT, 'ISO-8859-1', true);
 }
 
