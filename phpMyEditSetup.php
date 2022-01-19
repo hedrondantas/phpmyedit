@@ -626,6 +626,40 @@ $css_directive
 <body>
 $buffer
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <script>
+        window.onload = function() {
+            var elements = document.querySelectorAll(".pme-delete");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("btn-danger");
+                elements[i].classList.add("btn");
+            }
+            var elements = document.querySelectorAll(".pme-cancel, .pme-more, .pme-next, .pme-prev, .pme-first, .pme-goto, .pme-last, .pme-change, .pme-view, .pme-copy, .pme-clear, .pme-query");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("btn-light");
+                elements[i].classList.add("btn");
+            }
+            var elements = document.querySelectorAll(".pme-add, .pme-save");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("btn-primary");
+                elements[i].classList.add("btn");
+            }
+            var elements = document.querySelectorAll(".pme-search, .pme-hide");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("btn-secondary");
+                elements[i].classList.add("btn");
+            }
+            var elements = document.querySelectorAll(".pme-main");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("table");
+                elements[i].classList.add("table-striped");
+            }
+            var elements = document.querySelectorAll(".pme-sortinfo, .pme-queryinfo");
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.add("text-muted");
+            }
+        };
+    </script>
 </html>
 END;
 	} else if ($CSSstylesheet) {
