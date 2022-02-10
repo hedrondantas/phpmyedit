@@ -426,7 +426,7 @@ if ((!isset($dbl)) or empty($submit)) {
 
 // Number of records to display on the screen
 // Value of -1 lists all records in a table
-\$opts['inc'] = 15;
+\$opts['inc'] = 25;
 
 // Options you wish to give the users
 // A - add,  C - change, P - copy, V - view, D - delete,
@@ -438,7 +438,7 @@ if ((!isset($dbl)) or empty($submit)) {
 
 // Navigation style: B - buttons (default), T - text links, G - graphic links
 // Buttons position: U - up, D - down (default)
-\$opts['navigation'] = 'DB';
+\$opts['navigation'] = 'UG';
 
 // Display special page elements
 \$opts['display'] = array(
@@ -459,7 +459,7 @@ if ((!isset($dbl)) or empty($submit)) {
 /* Get the user's default language and use it if possible or you can
    specify particular one you want to use. Refer to official documentation
    for list of available languages. */
-\$opts['language'] = \$_SERVER['HTTP_ACCEPT_LANGUAGE'] . '-UTF8';
+\$opts['language'] = 'PT-BR-UTF8';
 
 /* Table-level filter capability. If set, it is included in the WHERE clause
    of any generated SELECT statement in SQL query. This gives you ability to
@@ -594,6 +594,15 @@ new phpMyEdit(\$opts);
 ");
 
 	$css_directive = <<<END
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
 <style type="text/css">
 	hr.pme-hr		     { border: 0px solid; padding: 0px; margin: 0px; border-top-width: 1px; height: 1px; }
 	table.pme-main 	     { border: #004d9c 1px solid; border-collapse: collapse; border-spacing: 0px; width: 100%; }
@@ -620,46 +629,48 @@ END;
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>$pageTitle</title>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 $css_directive
 </head>
 <body>
 $buffer
-</body>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-    <script>
-        window.onload = function() {
-            var elements = document.querySelectorAll(".pme-delete");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("btn-danger");
-                elements[i].classList.add("btn");
-            }
-            var elements = document.querySelectorAll(".pme-cancel, .pme-more, .pme-next, .pme-prev, .pme-first, .pme-goto, .pme-last, .pme-change, .pme-view, .pme-copy, .pme-clear, .pme-query");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("btn-light");
-                elements[i].classList.add("btn");
-            }
-            var elements = document.querySelectorAll(".pme-add, .pme-save");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("btn-primary");
-                elements[i].classList.add("btn");
-            }
-            var elements = document.querySelectorAll(".pme-search, .pme-hide");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("btn-secondary");
-                elements[i].classList.add("btn");
-            }
-            var elements = document.querySelectorAll(".pme-main");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("table");
-                elements[i].classList.add("table-striped");
-            }
-            var elements = document.querySelectorAll(".pme-sortinfo, .pme-queryinfo");
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].classList.add("text-muted");
-            }
-        };
-    </script>
+
+<script>
+	window.onload = function() {
+		var elements = document.querySelectorAll(".pme-delete");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("btn-danger");
+			elements[i].classList.add("btn");
+		}
+		var elements = document.querySelectorAll(".pme-cancel, .pme-more, .pme-next, .pme-prev, .pme-first, .pme-goto, .pme-last, .pme-change, .pme-view, .pme-copy, .pme-clear, .pme-query");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("btn-light");
+			elements[i].classList.add("btn");
+		}
+		var elements = document.querySelectorAll(".pme-add, .pme-save");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("btn-primary");
+			elements[i].classList.add("btn");
+		}
+		var elements = document.querySelectorAll(".pme-search, .pme-hide");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("btn-secondary");
+			elements[i].classList.add("btn");
+		}
+		var elements = document.querySelectorAll(".pme-main");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("table");
+			elements[i].classList.add("table-striped");
+		}
+		var elements = document.querySelectorAll(".pme-sortinfo, .pme-queryinfo");
+		for (var i = 0; i < elements.length; i++) {
+			elements[i].classList.add("text-muted");
+		}
+	};
+</script>
+
+</body>
 </html>
 END;
 	} else if ($CSSstylesheet) {
