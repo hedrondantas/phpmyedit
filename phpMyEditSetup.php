@@ -1,9 +1,5 @@
 <?php
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 /*
  * phpMyEdit - instant MySQL table editor and code generator
  *
@@ -19,15 +15,27 @@ error_reporting(E_ALL);
  * See README file for more information about this software.
  * See COPYING file for license information.
  *
- * Download the latest version from
- * http://platon.sk/projects/phpMyEdit/
- */
-
 /* $Platon: phpMyEdit/phpMyEditSetup.php,v 1.50 2007-09-16 12:57:07 nepto Exp $ */
 
+/*
+ ***********************
+ updated October 2018, Patrick Goupell, patrick@yoopermail.us
+ updated for php version 7
+ replace mysql_ functions with mysqli_ functions
+
+ ***********************
+
+	updated 5 February 2022, Robert Holmgren, rjh@holmgren.org
+	updated for PHP version 8
+	changes indicated by "//" comments and/or string "PHP v8"
+
+ ***********************
+*/
+
+/* Update to current version: https://github.com/Rajah01/phpMyEdit.class.php-PHPv8 */
+
 ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-            "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
@@ -57,53 +65,51 @@ error_reporting(E_ALL);
 <body bgcolor="white">
 
 <?php
+// **************************
+//
+//  setup environment
+//
+// **************************
 
-if (! defined('PHP_EOL')) {
-	define('PHP_EOL', strtoupper(substr(PHP_OS, 0, 3) == 'WIN') ? "\r\n"
-			: strtoupper(substr(PHP_OS, 0, 3) == 'MAC') ? "\r" : "\n");
-}
+	if (! defined('PHP_EOL'))
+	{
+		define('PHP_EOL', strtoupper(substr(PHP_OS, 0, 3) == 'WIN') ? "\r\n" : (strtoupper(substr(PHP_OS, 0, 3) == 'MAC') ? "\r" : "\n")); // PHP v8
+	}
 
-$hn = @$_POST['hn'];
-$un = @$_POST['un'];
-$pw = @$_POST['pw'];
-if (isset($_POST['db'])) $db = @$_POST['db'];
-if (isset($_POST['tb'])) $tb = @$_POST['tb'];
-$id = @$_POST['id'];
-$submit        = @$_POST['submit'];
-$options       = @$_POST['options'];
-$baseFilename  = @$_POST['baseFilename'];
-$pageTitle     = @$_POST['pageTitle'];
-$pageHeader    = @$_POST['pageHeader'];
-$HTMLissues    = @$_POST['HTMLissues'];
-$CSSstylesheet = @$_POST['CSSstylesheet'];
+	$hn = @$_POST['hn'];            // host (default localhost)
+	$pt = @$_POST['pt'];            // port (default 3306)
+	$un = @$_POST['un'];            // user name
+	$pw = @$_POST['pw'];            // password
+	if(isset($_POST['db'])){if(strlen($_POST['db'])>0) //PHP v8
+		{$db = @$_POST['db'];}}     // database (optional)	//PHP v8
+	if(isset($_POST['tb'])){if(strlen($_POST['tb'])>0) //PHP v8
+	{$tb = @$_POST['tb'];}}         // table name (optional)		//PHP v8
+	$id = @$_POST['id'];            // table unique key
+	$submit = @$_POST['submit'];    // submit button
 
-$phpExtension = '.php';
-if (isset($baseFilename) && $baseFilename != '') {
-	$phpFile = $baseFilename.$phpExtension;
-	//$contentFile = $baseFilename.'Content.inc';
-	$contentFile = $baseFilename.'.php';
-} elseif (isset($tb)) {
-	$phpFile = $tb.$phpExtension;
-	//$contentFile = $tb.'Content.inc';
-	$contentFile = $tb.'.php';
-} else {
-	$phpFile = 'index'.$phpExtension;
-	//$contentFile = 'Content.inc';
-	$contentFile = 'phpMyEdit-content.php';
-}
+	$options       = @$_POST['options'];
+	$baseFilename  = @$_POST['baseFilename'];
+	$pageTitle     = @$_POST['pageTitle'];
+	$pageHeader    = @$_POST['pageHeader'];
+	$HTMLissues    = @$_POST['HTMLissues'];
+	$CSSstylesheet = @$_POST['CSSstylesheet'];
 
-$buffer = '';
 
-function echo_html($myString)
+// ***************************
+//
+//  Support functions start here
+//
+// ***************************
+
+function echo_html($x)
 {
- // in PHP 5.4 the default encoding used by htmlspecialchars() was changed.
-  echo htmlspecialchars($myString, ENT_COMPAT, 'ISO-8859-1',true);
+	echo htmlspecialchars($x),PHP_EOL;
 }
 
-function echo_buffer($x)
+function build_buffer($x)
 {
 	global $buffer;
-	$buffer .= $x.PHP_EOL;
+	$buffer .= $x . PHP_EOL;
 }
 
 #:#####################################:#
@@ -117,29 +123,32 @@ function echo_buffer($x)
 #:#  Contributed by Wade Ryan,        #:#
 #:#                 20060906          #:#
 #:#####################################:#
-function check_constraints($dbl, $tb,$fd)
+function check_constraints($db1, $tb, $field)
 {
-  $query    = "show create table $tb";
-  $result   = $dbl->query($query);
-  $ct = $result->fetch();
-  $tableDef = preg_split('/\n/',$ct[1]);
-  //print_r($tableDef);
+	$constraint_arg="";
 
-  $constraint_arg="";
-  while (list($key,$val) = each($tableDef)) {
-    $words=preg_split("/[\s'`()]+/", $val);
-    if ($words[1] == "CONSTRAINT" && $words[6]=="REFERENCES") {
-      if ($words[5]==$fd) {
-        $constraint_arg="  'values' => array(\n".
-                        "    'table'  => '$words[7]',\n".
-                        "    'column' => '$words[8]'\n".
-                        "  ),\n";
-      }
-
-    }
-  }
-  //print_r("constraint_arg $constraint_arg");
-  return $constraint_arg;
+	$query = "show create table $tb";
+	$result = mysqli_query ($db1, $query);
+//	$tableDef = preg_split('/\n/',$result);
+	$rows = mysqli_fetch_row($result); //PHP v8
+//	while (list($key,$val) = each($tableDef))
+	foreach ($rows as $val)
+	{
+		$words=preg_split("/[\s'`()]+/", $val);
+//		if ($words[1] == "CONSTRAINT" && $words[6]=="REFERENCES")
+		if(isset($words[1])){if ($words[1] == "CONSTRAINT" && $words[6]=="REFERENCES")
+		{
+			if ($words[5]==$field)
+			{
+				$constraint_arg="  'values' => array(\n".
+				"    'table'  => '$words[7]',\n".
+				"    'column' => '$words[8]'\n".
+				"  ),\n";
+			}
+		}}
+	}
+	mysqli_free_result ($result);
+	return $constraint_arg;
 }
 
 function get_versions()
@@ -147,19 +156,25 @@ function get_versions()
 	$ret_ar  = array();
 	$dirname = dirname(__FILE__);
 	foreach (array(
-				'current' => __FILE__,
-				'setup'   => "$dirname/phpMyEditSetup.php",
-				'core'    => "$dirname/phpMyEdit.class.php",
-				'version' => "$dirname/doc/VERSION")
-			as $type => $file) {
-		if (@file_exists($file) && @is_readable($file)) {
-			if (($f = fopen($file, 'r')) == false) {
+		'current' => __FILE__,
+		'setup'   => "$dirname/phpMyEditSetup.php",
+		'core'    => "$dirname/phpMyEdit.class.php",
+		'version' => "$dirname/doc/VERSION")
+		as $type => $file)
+	{
+		if (@file_exists($file) && @is_readable($file))
+		{
+			if (($f = fopen($file, 'r')) == false)
+			{
 				continue;
 			}
 			$str = trim(fread($f, 4096));
-			if (strpos($str, ' ') === false && strlen($str) < 10) {
+			if (strpos($str, ' ') === false && strlen($str) < 10)
+			{
 				$ret_ar[$type] = $str;
-			} else if (preg_match('|\$'.'Platon:\s+\S+,v\s+(\d+.\d+)\s+|', $str, $matches)) {
+			}
+			else if (preg_match('|\$'.'Platon:\s+\S+,v\s+(\d+.\d+)\s+|', $str, $matches))
+			{
 				$ret_ar[$type] = $matches[1];
 			}
 			fclose($f);
@@ -167,195 +182,272 @@ function get_versions()
 	}
 	return $ret_ar;
 }
-/**
- * From https://www.sitepoint.com/community/u/Czaries helpful comment on how to do this
-	* 	 *	Parse PDO-produced column type
-	* 	 	 *	[internal function]
-	* 	 	 	 */
-function parseColumnType($colType)
+
+function EchoFormHiddenInput ($self, $hn, $pt, $un, $pw, $db, $tb, $id, $opt)
 {
-	$colInfo = array();
-	$colParts = explode(" ", $colType);
-	if($fparen = strpos($colParts[0], "("))
-	{
-		$colInfo['type'] = substr($colParts[0], 0, $fparen);
-		$colInfo['pdoType'] = '';
-		$colInfo['length']  = str_replace(")", "", substr($colParts[0], $fparen+1));
-		$colInfo['attributes'] = isset($colParts[1]) ? $colParts[1] : NULL;
-	}
-	else
-	{
-		$colInfo['type'] = $colParts[0];
-	}
+	echo '<form action="'.htmlspecialchars($self).'" method="POST">
+	<input type="hidden" name="hn" value = "' . htmlspecialchars($hn) . '">
+	<input type="hidden" name="pt" value = "' . htmlspecialchars($pt) . '">
+	<input type="hidden" name="un" value = "' . htmlspecialchars($un) . '">
+	<input type="hidden" name="pw" value= "' . htmlspecialchars($pw) . '">' . PHP_EOL;
 
-	// PDO Bind types
-	$pdoBindTypes = array(
-		'char' => PDO::PARAM_STR,
-		'int' => PDO::PARAM_INT,
-		'bool' => PDO::PARAM_BOOL,
-		'date' => PDO::PARAM_STR,
-		'time' => PDO::PARAM_INT,
-		'text' => PDO::PARAM_STR,
-		'blob' => PDO::PARAM_LOB,
-		'binary' => PDO::PARAM_LOB
-	);
+	if ($db != "")
+		echo '<input type="hidden" name="db" value = "' . htmlspecialchars($db) . '">' . PHP_EOL;
 
-	$pdoType = '';
-	foreach($pdoBindTypes as $pKey => $pType)
-	{
-		if(strpos(' '.strtolower($colInfo['type']).' ', $pKey)) {
-			$colInfo['pdoType'] = $pType;
-			break;
-		} else {
-			$colInfo['pdoType'] = PDO::PARAM_STR;
-		}
-	}
+	if ($tb != "")
+		echo '<input type="hidden" name="tb" value = "' . htmlspecialchars($tb) . '">' . PHP_EOL;
 
-	return $colInfo;
+	if ($id != "")
+		echo '<input type="hidden" name="id" value = "' . htmlspecialchars($id) . '">' . PHP_EOL;
+
+	if ($opt != "")
+		echo '<input type="hidden" name="options" value="1">' . PHP_EOL;
+
 }
-								//
-$self = basename($_SERVER['PHP_SELF']);
-function sql_connect($hn,$db,$un,$pw)
+
+function ShowLogin ($self, $hn, $pt, $un, $pw, $db, $tb)
 {
-		try {
-			$dsn = "mysql:host=" . $hn;
-			if (isset($db)&& strlen($db)>1)
-				$dsn .= ";dbname=" . $db;
-			$dbh = @ini_get('allow_persistent')
-				? new PDO($dsn, $un, $pw, array( PDO::ATTR_PERSISTENT => true )) // @mysql_pconnect($this->hn, $this->un, $this->pw)
-				: new PDO($dsn, $un, $pw); // @mysql_connect($this->hn, $this->un, $this->pw);
-
-			// select error-mode: [ERRMODE_SILENT | ERRMODE_WARNING | ERRMODE_EXCEPTION]
-			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-			// select fetch-mode: [FETCH_ASSOC | FETCH_CLASS | FETCH_OBJ]
-			// $this->dbh->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-		} // try/catch
-		catch(PDOException $e) {
-			die("sql_connect PDO($dsn,$un,$pw) ". $e->getMessage());
-			$dbh = null;
-		} // try/catch
-		return $dbh;
-}
-if (isset($hn) && isset($un) && isset($pw))
-	$dbl  = sql_connect($hn,$db, $un, $pw);
-if (strlen($db)<1)
-		unset($db);
-if ((!isset($dbl)) or empty($submit)) {
-	echo '<h1>Please log in to your MySQL database</h1>';
-	if (!empty($submit)) {
-		echo '<h2>Sorry - login failed - please try again</h2>'.PHP_EOL;
-	}
-	if (! isset($hn)) {
-		$hn = 'localhost';
-	}
-	if (! isset($un)) 
-		$un = 'username';
-	if (! isset($pw))
-		$pw = 'password';
 	echo '
-		<form action="'.htmlspecialchars($self).'" method="POST">
+		<form action="' . htmlspecialchars($self) . '" method="POST">
 		<table border="1" cellpadding="1" cellspacing="0" summary="Login form">
 		<tr>
 		<td>Hostname:</td>
-		<td><input type="text" name="hn" value="'.htmlspecialchars($hn).'"></td>
+		<td><input type="text" name="hn" value="' . htmlspecialchars($hn) . '"></td>
+		</tr><tr>
+		<tr>
+		<td>Port:</td>
+		<td><input type="text" name="pt" value="' . htmlspecialchars($pt) . '"></td>
 		</tr><tr>
 		<td>Username:</td>
-		<td><input type="text" name="un" value="'.htmlspecialchars($un).'"></td>
+		<td><input type="text" name="un" value="' . htmlspecialchars($un) . '"></td>
 		</tr><tr>
 		<td>Password:</td>
-		<td><input type="text" name="pw" value="'.htmlspecialchars($pw).'"></td>
+		<td><input type="password" name="pw" value="'.htmlspecialchars($pw).'"></td>
 		</tr><tr>
 		<td>Database:</td>
-        <td><input type="text" name="db" value="'.htmlspecialchars($db).'"></td>
+		<td><input type="text" name="db" value="' . htmlspecialchars($db) . '"></td>
 		</tr><tr>
 		<td>Table:</td>
-		<td><input type="text" name="tb" value="'.htmlspecialchars($tb).'"></td>
+		<td><input type="text" name="tb" value="' . htmlspecialchars($tb) . '"></td>
 		</tr>
 		</table><br>
 		<input type="submit" name="submit" value="Submit">
 		</form>'.PHP_EOL;
-} else if (! isset($db)) {
+}
 
-	echo '<h1>Please select a database</h1>
-		<form action="'.htmlspecialchars($self).'" method="POST">
-		<input type="hidden" name="hn" value="'.htmlspecialchars($hn).'">
-		<input type="hidden" name="un" value="'.htmlspecialchars($un).'">
-		<input type="hidden" name="pw" value="'.htmlspecialchars($pw).'">
-		<table border="1" cellpadding="1" cellspacing="1" summary="Database selection">'.PHP_EOL;
-	$dbs = $dbl->query( 'SHOW DATABASES' );
+function ShowSelectDatabase ($self, $hn, $pt, $un, $pw, $db1)
+{
+	$error = false;
 
-	while( ( $db = $dbs->fetchColumn( 0 ) ) !== false ){
-		$checked = ! strcasecmp($un, $db) ? ' checked' : '';
-		$db = htmlspecialchars($db);
-		echo '<tr><td><input'.$checked.' type="radio" name="db" value="'.$db.'"></td><td>'.$db.'</td></tr>'.PHP_EOL;
+	$sql = "show databases";
+	$dbs = mysqli_query($db1, $sql);
+
+	if ($error == false)
+	{
+		echo '<h1>Please select a database</h1>' . PHP_EOL;
+
+		$result = EchoFormHiddenInput ($self, $hn, $pt, $un, $pw, "", "", "", "");
+
+		echo '
+			<table border="1" cellpadding="1" cellspacing="1" summary="Database selection">' . PHP_EOL;
+
+		while ($row = mysqli_fetch_assoc($dbs))
+		{
+			$db = $row['Database'];
+			echo '<tr><td><input'.$checked.' type="radio" name="db" value="'.$db.'"></td><td>'.$db.'</td></tr>'.PHP_EOL;
+		}
+
+		echo '</table><br>
+		<input type="submit" name="submit" value="Submit">
+		<input type="submit" name="cancel" value="Cancel">
+		</form>' . PHP_EOL;
+
+	mysqli_free_result ($dbs);
+	}
+}
+
+function CheckForDatabase ($self, $hn, $pt, $un, $pw, $db, $tb, $db1)
+{
+	$havedb = false;
+
+	$stmt = "show databases";
+	$result = mysqli_query ($db1, $stmt);
+
+	while ($row = mysqli_fetch_array($result))
+	{
+		$thisdb = $row [0];
+		if ($thisdb == $db)
+		{
+			$havedb = true;
+			break;
+		}
+	}
+
+	mysqli_free_result ($result);
+
+	return $havedb;
+}
+
+function CheckForDatabaseTable ($self, $hn, $pt, $un, $pw, $db, $tb, $db1)
+{
+	$havetb = false;
+
+	$stmt = "show columns from $tb in $db";
+	$result = mysqli_query ($db1, $stmt);
+
+	if ($row = mysqli_fetch_assoc($result))
+	{
+		$havetb = true;
+	}
+
+	mysqli_free_result ($result);
+
+	return $havetb;
+}
+
+function ShowSelectTable ($self, $hn, $pt, $un, $pw, $db, $db1)
+{
+	echo '<h1>Please select a table from database: '.htmlspecialchars($db).'</h1>' . PHP_EOL;
+
+	$result = EchoFormHiddenInput ($self, $hn, $pt, $un, $pw, $db, "", "", "");
+
+	echo '
+		<table border="1" cellpadding="1" cellspacing="1" summary="Table selection">' . PHP_EOL;
+
+	$stmt = "show tables from $db";
+	$result = mysqli_query ($db1, $stmt);
+
+	while ($row = mysqli_fetch_array($result))
+	{
+		$tb = $row[0];
+		echo '<tr><td><input type="radio" name="tb" value="' . $tb . '"></td><td>' . $tb . '</td></tr>' . PHP_EOL;
 	}
 	echo '</table><br>
 		<input type="submit" name="submit" value="Submit">
 		<input type="submit" name="cancel" value="Cancel">
 		</form>'.PHP_EOL;
-} else if (!isset($tb) || strlen($tb)<1) {
-	echo '<h1>Please select a table from database: '.htmlspecialchars($db).'</h1>
-		<form action="'.htmlspecialchars($self).'" method="POST">
-		<input type="hidden" name="hn" value="'.htmlspecialchars($hn).'">
-		<input type="hidden" name="un" value="'.htmlspecialchars($un).'">
-		<input type="hidden" name="pw" value="'.htmlspecialchars($pw).'">
-		<input type="hidden" name="db" value="'.htmlspecialchars($db).'">
-		<table border="1" cellpadding="1" cellspacing="1" summary="Table selection">'.PHP_EOL;
-	$tbs = $dbl->query('SHOW TABLES');
-	$checked = ' checked';
-	while( ($tb = $tbs->fetchColumn(0))!==false)	{
-		$tb = htmlspecialchars($tb);
-		echo '<tr><td><input'.$checked.' type="radio" name="tb" value="'.$tb.'"></td><td>'.$tb.'</td></tr>'.PHP_EOL;
-		$checked = '';
-	}
-	echo '</table><br>
-		<input type="submit" name="submit" value="Submit">
-		<input type="submit" name="cancel" value="Cancel">
-		</form>'.PHP_EOL;
-} else if (!isset($id)) {
-	echo '  <h1>Please select an identifier from table: '.htmlspecialchars($tb).'</h1>
+
+	mysqli_free_result ($result);
+}
+
+function ShowSelectId ($self, $hn, $pt, $un, $pw, $db, $tb, $db1)
+{
+	echo '  <h1>Please select an identifier from table: ' . htmlspecialchars($tb) . '</h1>
 		<p>
 		This field will be used in change, view, copy and delete operations.<br>
 		The field should be numeric and must uniquely identify a record.
 		</p>
 		<p>
-		Please note, that there were problems reported by phpMyEdit users
-		regarding using MySQL reserved word as unique key name (the example for
-				this is "key" name). Thus we recommend you to use another name
-		of unique key. Usage of "id" or "ID" should be safe and good idea.
-		</p>
-		<form action="'.htmlspecialchars($self).'" method="POST">
-		<input type="hidden" name="hn" value="'.htmlspecialchars($hn).'">
-		<input type="hidden" name="un" value="'.htmlspecialchars($un).'">
-		<input type="hidden" name="pw" value="'.htmlspecialchars($pw).'">
-		<input type="hidden" name="db" value="'.htmlspecialchars($db).'">
-		<input type="hidden" name="tb" value="'.htmlspecialchars($tb).'">
-		<table border="1" cellpadding="1" cellspacing="1" summary="Key selection">'.PHP_EOL;
-//		<tr><td><input type="radio" name="id" value="">
-	//		<td><i>None</i></td><td><i>No id field required</i></td></tr>
-	$tb_desc = $dbl->query("DESCRIBE $tb");
-	while( ($ff = $tb_desc->fetch())!==false)	{
-		$checked = $ff["Key"]=="PRI" ? ' checked' : '';
-		echo '<tr><td><input',$checked,' type="radio" name="id" value="',htmlspecialchars($ff[0]),'"></td>';
-		echo '<td>',htmlspecialchars($ff[0]),'</td>';
-		echo '<td>',htmlspecialchars($ff["Type"]),'</td>';
+		Please note, that there were problems reported by phpMyEdit users 		regarding using MySQL reserved word as unique key name (the example for this is "key" name). Thus we recommend you to use another name of unique key. Usage of "id" or "ID" should be safe and good idea.
+		</p>' . PHP_EOL;
+
+	$result = EchoFormHiddenInput ($self, $hn, $pt, $un, $pw, $db, $tb, "", "");
+
+	echo '		<table border="1" cellpadding="1" cellspacing="1" summary="Key selection">' . PHP_EOL;
+
+	$stmt = "show columns from $tb in $db";
+	$result = mysqli_query ($db1, $stmt);
+	while ($row = mysqli_fetch_array($result))
+	{
+		$field = $row [0];
+		$type = $row [1];
+		$key = $row [3];
+
+		if ($key == "PRI")
+		{
+			$checked = "checked";
+			// get primary key type
+		}
+		else
+			$checked = "";
+
+		echo '<tr><td><input ' . $checked . ' type="radio" name="id" value="',htmlspecialchars($field),'"></td>';
+		echo '<td>',htmlspecialchars($field),'</td>';
+		// should I get ff (flags) from getcolumnmeta ???
+		// strlen($ff) <= 0 && $ff = '---';  // what is this ???
+//		echo '<td>',htmlspecialchars($ff),'</td></tr>' . PHP_EOL;; //commented in PHP v8 (the above two lines are NOT my comments!)
 	}
+
+//	mysqli_free_result ($stmt);
+	mysqli_free_result ($result);
+
 	echo '</table><br>
 		<input type="submit" name="submit" value="Submit">
 		<input type="submit" name="cancel" value="Cancel">
-		</form>'.PHP_EOL;
+		</form>' . PHP_EOL;
+}
 
-} else if (!isset($options)) {
-	echo '<h1>Please select additional options</h1>
-		<form action="'.htmlspecialchars($self).'" method="POST">
-		<input type="hidden" name="hn" value="'.htmlspecialchars($hn).'">
-		<input type="hidden" name="un" value="'.htmlspecialchars($un).'">
-		<input type="hidden" name="pw" value="'.htmlspecialchars($pw).'">
-		<input type="hidden" name="db" value="'.htmlspecialchars($db).'">
-		<input type="hidden" name="tb" value="'.htmlspecialchars($tb).'">
-		<input type="hidden" name="id" value="'.htmlspecialchars($id).'">
-		<table border="1" cellpadding="1" cellspacing="1" summary="Additional options">
+function GetPrimaryKeyType ($self, $hn, $pt, $un, $pw, $db, $tb, $db1)
+{
+	$primarykeytype = "";
+
+	$stmt = "show columns from $tb in $db";
+	$result = mysqli_query ($db1, $stmt);
+	while ($row = mysqli_fetch_array($result))
+	{
+		$field = $row [0];
+		$type = $row [1];
+		$key = $row [3];
+
+		if ($key == "PRI")      // what if UNI(que) and no PRI
+		{
+			// now decode the type
+			//$result => $result2 //PHP v8
+			$result2 = DecodeType ($type);
+			$primarykeytype = $result2[0];  // array: type, length
+		}
+	}
+
+//    mysqli_free_result ($stmt);
+	mysqli_free_result ($result);
+
+	return $primarykeytype;
+}
+
+function DecodeType ($type)
+{
+	$result = $type;
+	$length = 0;
+	$i = strpos ($type, "(");
+	if ($i > 0)
+	{
+		$result = substr ($type, 0, $i);
+	}
+	$length = GetLength ($type);
+
+	return array ("$result", "$length");
+}
+
+function GetLongestValue ($type)
+{
+	$len = 0;
+	$i = strpos ($type, "(");
+	$j = strlen ($type);
+	$mytype = substr ($type, $i + 1, ($j - $i) - 2);
+
+	// split $mytype at ","
+	$values = explode(",", $mytype);
+	$i = count ($values);
+	for ($j = 0; $j < $i; $j++)
+	{
+		$k = strlen ($values [$j]);
+		if ($k > $len)
+			$len = $k;
+	}
+
+	if ($len > 0)
+		$len -= 2;
+	return $len;
+}
+
+function ShowSelectOptions ($self, $hn, $pt, $un, $pw, $db, $tb, $db1, $id)
+{
+	echo "select options: $hn, $pt, $un, $pw, $db, $tb, $id<br>";
+	echo '<h1>Please select additional options</h1>' . PHP_EOL;
+
+	$result = EchoFormHiddenInput ($self, $hn, $pt, $un, $pw, $db, $tb, $id, "");
+
+	echo '		<table border="1" cellpadding="1" cellspacing="1" summary="Additional options">
 		<tr><td>Base filename</td><td><input type="text" name=baseFilename value ="'.htmlspecialchars($tb).'"></td></tr>
 		<tr><td>Page title</td><td><input type="text" name=pageTitle value ="'.htmlspecialchars($tb).'"></td></tr>
 		<tr><td>Page header</td><td><input type="checkbox" name=pageHeader></td></tr>
@@ -365,13 +457,126 @@ if ((!isset($dbl)) or empty($submit)) {
 		<input type="submit" name="submit" value="Submit">
 		<input type="submit" name="cancel" value="Cancel">
 		<input type="hidden" name="options" value="1">
-		</form>'.PHP_EOL;
-} else {
+		</form>' . PHP_EOL;
+}
+
+function GetLength($type)
+{
+	$len = 0;
+	$mytype = $type;
+
+	$i = strpos ($mytype, "(");
+	if ($i > 0)
+	{
+		$mytype = substr ($mytype, 0, $i);
+	}
+
+	switch ($mytype)
+	{
+		case "blob":
+			$len = 60;
+			break;
+		case "date":
+			$len = 10;
+			break;
+		case "datetime":
+			$len = 22;
+			break;
+		case "enum":
+			$len = 30;
+			// now get the longest enum value
+			$len = GetLongestValue ($type);
+			break;
+		case "set":
+			$len = 30;
+			// now get the longest set value
+			$len = GetLongestValue ($type);
+			break;
+		case "text":
+			$len = 60;
+			break;
+		case "time":
+			$len = 11;
+			break;
+		case "timestamp":
+			$len = 22;
+			break;
+		default:
+			$i = strpos ($type, "(");
+			if ($i > 0)
+			{
+				$j = strpos ($type, ",");
+				if ($j == 0)
+					$j = strpos ($type, ")" );
+					$len = substr ($type, $i + 1, $j - $i - 1);
+			}
+	}
+
+	return $len;
+}
+
+function GenerateCode ($self, $hn, $pt, $un, $pw, $db, $tb, $db1, $id)
+{
+	global $buffer;
+	global $pageHeader;
+	global $pageTitle;
+	global $contentFile;
+	global $CSSstylesheet;
+	global $HTMLissues;
+
 	echo '<h1>Here is your phpMyEdit calling program</h1>'.PHP_EOL;
 	echo '<h2>You may now copy and paste it into your PHP editor</h2>'.PHP_EOL;
-	if ($pageHeader) {
-		echo_buffer('<h3>'.$pageTitle.'</h3>');
+
+	$css_directive = <<<END
+<style type="text/css">
+	hr.pme-hr            { border: 0px solid; padding: 0px; margin: 0px; border-top-width: 1px; height: 1px; }
+	table.pme-main       { border: #004d9c 1px solid; border-collapse: collapse; border-spacing: 0px; width: 100%; }
+	table.pme-navigation { border: #004d9c 0px solid; border-collapse: collapse; border-spacing: 0px; width: 100%; }
+	td.pme-navigation-0, td.pme-navigation-1 { white-space: nowrap; }
+	th.pme-header        { border: #004d9c 1px solid; padding: 4px; background: #add8e6; }
+	td.pme-key-0, td.pme-value-0, td.pme-help-0, td.pme-navigation-0, td.pme-cell-0,
+	td.pme-key-1, td.pme-value-1, td.pme-help-0, td.pme-navigation-1, td.pme-cell-1,
+	td.pme-sortinfo, td.pme-filter { border: #004d9c 1px solid; padding: 3px; }
+	td.pme-buttons { text-align: left;   }
+	td.pme-message { text-align: center; }
+	td.pme-stats   { text-align: right;  }
+</style>
+END;
+
+	$css_directive .= PHP_EOL;
+
+	if (! $CSSstylesheet)
+	{
+		$css_directive = '';
 	}
+
+	if ($HTMLissues)
+	{
+		$buffer = <<<END
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+		"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>$pageTitle</title>
+$css_directive
+</head>
+<body>
+$buffer
+</body>
+</html>
+END;
+	}
+	else if ($CSSstylesheet)
+	{
+		$buffer = $css_directive;
+	}
+
+	if ($pageHeader)
+	{
+		build_buffer('<h3>'.$pageTitle.'</h3>');
+	}
+
 	$versions    = '';
 	$versions_ar = get_versions();
 	foreach (array(
@@ -383,7 +588,9 @@ if ((!isset($dbl)) or empty($submit)) {
 		$version = isset($versions_ar[$type]) ? $versions_ar[$type] : 'unknown';
 		$versions .= sprintf("\n *  %36s %s", $desc, $version);
 	}
-	echo_buffer("<?php
+
+	$text = <<<END
+<?php
 
 /*
  * IMPORTANT NOTE: This generated file contains only a subset of huge amount
@@ -397,8 +604,9 @@ if ((!isset($dbl)) or empty($submit)) {
  *$versions
  */
 
-// MySQL host name, user name, password, database, and table
+// MySQL host name, port, user name, password, database, and table
 \$opts['hn'] = '$hn';
+\$opts['pt'] = '$pt';
 \$opts['un'] = '$un';
 \$opts['pw'] = '$pw';
 \$opts['db'] = '$db';
@@ -407,26 +615,31 @@ if ((!isset($dbl)) or empty($submit)) {
 // Name of field which is the unique key
 \$opts['key'] = '$id';
 
-// Type of key field (int/real/string/date etc.)");
+// Type of key field (int/real/string/date etc.)
+END;
 
-	if ($id == '') {
-		echo_buffer("\$opts['key_type'] = '';");
-	} else {
-		$tb_desc = $dbl->query("DESCRIBE $tb");
-		while( ($fd = $tb_desc->fetch())!==false)	{
-			if ($fd == $id) {
-				echo_buffer("\$opts['key_type'] = '".@mysql_field_type($fds, $j)."';");
-				break;
-			}
+	build_buffer ($text);
+
+	if ($id == '')
+	{
+		build_buffer("\$opts['key_type'] = '';");
+	}
+	else
+	{
+		$result = GetPrimaryKeyType ($self, $hn, $pt, $un, $pw, $db, $tb, $db1);
+		if ($result != "")
+		{
+			build_buffer("\$opts['key_type'] = '".$result."';");
 		}
 	}
-	echo_buffer("
+
+	$text = <<<END
 // Sorting field(s)
 \$opts['sort_field'] = array('$id');
 
 // Number of records to display on the screen
 // Value of -1 lists all records in a table
-\$opts['inc'] = 25;
+\$opts['inc'] = 15;
 
 // Options you wish to give the users
 // A - add,  C - change, P - copy, V - view, D - delete,
@@ -436,9 +649,9 @@ if ((!isset($dbl)) or empty($submit)) {
 // Number of lines to display on multiple selection filters
 \$opts['multiple'] = '4';
 
-// Navigation style: B - buttons (default), T - text links, G - graphic links
+// Navigation style: B - buttons (default), T - text links (default - PHP v8), G - graphic links
 // Buttons position: U - up, D - down (default)
-\$opts['navigation'] = 'UG';
+\$opts['navigation'] = 'DBT';
 
 // Display special page elements
 \$opts['display'] = array(
@@ -459,7 +672,7 @@ if ((!isset($dbl)) or empty($submit)) {
 /* Get the user's default language and use it if possible or you can
    specify particular one you want to use. Refer to official documentation
    for list of available languages. */
-\$opts['language'] = 'PT-BR-UTF8';
+\$opts['language'] = \$_SERVER['HTTP_ACCEPT_LANGUAGE'] . '-UTF8';
 
 /* Table-level filter capability. If set, it is included in the WHERE clause
    of any generated SELECT statement in SQL query. This gives you ability to
@@ -471,7 +684,7 @@ if ((!isset($dbl)) or empty($submit)) {
 */
 
 /* Field definitions
-   
+
 Fields will be displayed left to right on the screen in the order in which they
 appear in generated list. Here are some most used field options documented.
 
@@ -479,7 +692,7 @@ appear in generated list. Here are some most used field options documented.
 ['maxlen'] maximum length to display add/edit/search input boxes
 ['trimlen'] maximum length of string content to display in row listing
 ['width'] is an optional display width specification for the column
-          e.g.  ['width'] = '100px';
+		e.g.  ['width'] = '100px';
 ['mask'] a string that is used by sprintf() to format field output
 ['sort'] true or false; means the users may sort the display on this column
 ['strip_tags'] true or false; whether to strip tags from content
@@ -487,18 +700,18 @@ appear in generated list. Here are some most used field options documented.
 ['select'] T - text, N - numeric, D - drop-down, M - multiple selection
 ['options'] optional parameter to control whether a field is displayed
   L - list, F - filter, A - add, C - change, P - copy, D - delete, V - view
-            Another flags are:
-            R - indicates that a field is read only
-            W - indicates that a field is a password field
-            H - indicates that a field is to be hidden and marked as hidden
+			Another flags are:
+			R - indicates that a field is read only
+			W - indicates that a field is a password field
+			H - indicates that a field is to be hidden and marked as hidden
 ['URL'] is used to make a field 'clickable' in the display
-        e.g.: 'mailto:\$value', 'http://\$value' or '\$page?stuff';
+		e.g.: 'mailto:\$value', 'http://\$value' or '\$page?stuff';
 ['URLtarget']  HTML target link specification (for example: _blank)
 ['textarea']['rows'] and/or ['textarea']['cols']
   specifies a textarea is to be used to give multi-line input
   e.g. ['textarea']['rows'] = 5; ['textarea']['cols'] = 10
 ['values'] restricts user input to the specified constants,
-           e.g. ['values'] = array('A','B','C') or ['values'] = range(1,99)
+			e.g. ['values'] = array('A','B','C') or ['values'] = range(1,99)
 ['values']['table'] and ['values']['column'] restricts user input
   to the values found in the specified column of another table
 ['values']['description'] = 'desc_column'
@@ -507,85 +720,114 @@ appear in generated list. Here are some most used field options documented.
   This is useful for giving more meaning to column values. Multiple
   descriptions fields are also possible. Check documentation for this.
 */
-");
-	$dbl->exec("use $db");
-	$tb_desc = $dbl->query("DESCRIBE $tb");
-	while(($fds = $tb_desc->fetch()) !== false) {
-		$ts_cnt  = 0;
-		$fd = $fds[0]; // name
-		//$fm = mysql_fetch_field($fds,$k);
-		$fn = strtr($fd, '_-.', '   ');
+END;
+
+	build_buffer ($text);
+
+	$ts_cnt  = 0;
+	$stmt = "show columns from $tb in $db";
+	$result = mysqli_query ($db1, $stmt);
+
+	while ($row = mysqli_fetch_array ($result))
+	{
+		$field = $row[0];
+		$type = $row[1];
+		$null = $row[2];
+		$key = $row[3];
+		$default = $row[4];
+		$extra = $row[5];
+
+		$len = 0;
+		$fm = $field;
+		$fn = strtr($field, '_-.', '   ');
 		$fn = preg_replace('/(^| +)id( +|$)/', '\\1ID\\2', $fn); // uppercase IDs
 		$fn = ucfirst($fn);
-		$row = $fds;
-		echo_buffer('$opts[\'fdd\'][\''.$fd.'\'] = array('); // )
-		echo_buffer("  'name'     => '".str_replace('\'','\\\'',$fn)."',");
-		$auto_increment = strstr($row[5], 'auto_increment') ? 1 : 0;
-		if (substr($row[1],0,3) == 'set') {
-			echo_buffer("  'select'   => 'M',");
-		} else {
-			echo_buffer("  'select'   => 'T',");
+
+		build_buffer( '$opts[\'fdd\'][\'' . $field . '\'] = array(');
+		build_buffer("  'name'     => '" . str_replace('\'','\\\'',$fn) . "',");
+
+		if ((substr($type,0,3) == 'set') or (substr($type,0,4) == 'enum'))
+		{
+			build_buffer("  'select'   => 'M',");
 		}
-//		print_r("<br>$fd<br>$fn<br>");
-//		print_r("row<br>");
-//		print_r($row[1]);
-//		print_r("endrow<br>");
-		if ($auto_increment) {
-			echo_buffer("  'options'  => 'AVCPDR', // auto increment");
+		else
+		{
+			build_buffer("  'select'   => 'T',");
 		}
-		// timestamps are read-only
-		else if ($row[1] == 'timestamp') {
-			if ($ts_cnt > 0) {
-				echo_buffer("  'options'  => 'AVCPD',");
-			} else { // first timestamp
-				echo_buffer("  'options'  => 'AVCPDR', // updated automatically (MySQL feature)");
+
+		if ($extra == 'auto_increment')
+		{
+			build_buffer("  'options'  => 'AVCPDR', // auto increment");
+		}
+		else if ($type == 'timestamp')
+		{
+			if ($ts_cnt > 0)
+			{
+				build_buffer("  'options'  => 'AVCPD',");
+			}
+			else
+			{ // first timestamp
+				build_buffer("  'options'  => 'AVCPDR', // updated automatically (MySQL feature)");
 			}
 			$ts_cnt++;
 		}
-		$ml = 0;
+
+		$length = DecodeType ($type);
+		$len = $length [1];
+		if (($type == 'blob') or ($type == 'text'))
 		{
-			$pml = parseColumnType($row[1]);
-			foreach($pml as $i => $j)	{
-				if ($i=='length')
-					$ml = $j;
-			}
-		echo_buffer("  'maxlen'   => ".$ml.",");
+			$DoNothing = true;
 		}
-		//@mysql_field_len($fds,$k).',');
+		else
+		{
+			build_buffer("  'maxlen'   => $len,");
+		}
+
 		// blobs -> textarea
-		if ($row[1] == 'blob') {
-			echo_buffer("  'textarea' => array(");
-			echo_buffer("    'rows' => 5,");
-			echo_buffer("    'cols' => 50),");
+		if (($type == 'blob') or ($type == 'text'))
+		{
+			build_buffer("  'textarea' => array(");
+			build_buffer("    'rows' => 5,");
+			build_buffer("    'cols' => 80),");
 		}
+
 		// SETs and ENUMs get special treatment
-		if ((substr($row[1],0,3) == 'set' || substr($row[1],0,4) == 'enum')
-				&& ! (($pos = strpos($row[1], '(')) === false)) {
+		if ((substr($type,0,3) == 'set' || substr($type,0,4) == 'enum') && ! (($pos = strpos($type, '(')) === false))
+		{
 			$indent = str_repeat(' ', 18);
-			$outstr = substr($row[1], $pos + 2, -2);
+			$outstr = substr($type, $pos + 2, -2);
 			$outstr = explode("','", $outstr);
 			$outstr = str_replace("''", "'",  $outstr);
 			$outstr = str_replace('"', '\\"', $outstr);
-			$outstr = implode('",'.PHP_EOL.$indent.'"', $outstr);
-			echo_buffer("  'values'   => array(".PHP_EOL.$indent.'"'.$outstr.'"),');
+			$outstr = implode('",' . PHP_EOL . $indent . '"', $outstr);
+			build_buffer("  'values'   => array(".PHP_EOL.$indent.'"'.$outstr.'"),');
 		}
+
 		// automatic support for Default values
-		if ($row[4] != '' && $row[4] != 'NULL') {
-			echo_buffer("  'default'  => '".$row[4]."',");
-		} else if ($auto_increment) {
-			echo_buffer("  'default'  => '0',");
+		if ($default != '' && $default != 'NULL')
+		{
+			build_buffer("  'default'  => '".$default."',");
 		}
+		else if ($key == 'PRI')       // ok if auto increment
+		{                             // but not if a text type key
+			build_buffer("  'default'  => '0',");
+		}
+
 		// check for table constraints
-		$outstr = check_constraints($dbl, $tb, $fd);
-		if ($outstr != '') {
-			echo_buffer($outstr);
+		$outstr = check_constraints($db1, $tb, $field);
+		if ($outstr != '')
+		{
+			build_buffer($outstr);
 		}
-		echo_buffer("  'sort'     => true");
-		//echo_buffer("  'nowrap'   => false,");
-		echo_buffer(');');
+
+		build_buffer("  'sort'     => true");
+		//build_buffer("  'nowrap'   => false,");
+		build_buffer(');');
 	}
 
-	echo_buffer("
+	mysqli_free_result ($result);
+
+	build_buffer("
 // Now important call to phpMyEdit
 require_once 'phpMyEdit.class.php';
 new phpMyEdit(\$opts);
@@ -593,109 +835,147 @@ new phpMyEdit(\$opts);
 ?>
 ");
 
-	$css_directive = <<<END
-	
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-
-    <!-- CSS only -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-
-	<!-- JavaScript Bundle with Popper -->
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-
-<style type="text/css">
-	hr.pme-hr		     { border: 0px solid; padding: 0px; margin: 0px; border-top-width: 1px; height: 1px; }
-	table.pme-main 	     { border: #004d9c 1px solid; border-collapse: collapse; border-spacing: 0px; width: 100%; }
-	table.pme-navigation { border: #004d9c 0px solid; border-collapse: collapse; border-spacing: 0px; width: 100%; }
-	td.pme-navigation-0, td.pme-navigation-1 { white-space: nowrap; }
-	th.pme-header	     { border: #004d9c 1px solid; padding: 4px; background: #add8e6; }
-	td.pme-key-0, td.pme-value-0, td.pme-help-0, td.pme-navigation-0, td.pme-cell-0,
-	td.pme-key-1, td.pme-value-1, td.pme-help-0, td.pme-navigation-1, td.pme-cell-1,
-	td.pme-sortinfo, td.pme-filter { border: #004d9c 1px solid; padding: 3px; }
-	td.pme-buttons { text-align: left;   }
-	td.pme-message { text-align: center; }
-	td.pme-stats   { text-align: right;  }
-</style>
-END;
-	if (! $CSSstylesheet) {
-		$css_directive = '';
-	}
-
-	if ($HTMLissues) {
-		$buffer = <<<END
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-		"http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>$pageTitle</title>
-$css_directive
-</head>
-<body>
-$buffer
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
-
-<script>
-	window.onload = function() {
-		var elements = document.querySelectorAll(".pme-delete");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("btn-danger");
-			elements[i].classList.add("btn");
-		}
-		var elements = document.querySelectorAll(".pme-cancel, .pme-more, .pme-next, .pme-prev, .pme-first, .pme-goto, .pme-last, .pme-change, .pme-view, .pme-copy, .pme-clear, .pme-query");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("btn-light");
-			elements[i].classList.add("btn");
-		}
-		var elements = document.querySelectorAll(".pme-add, .pme-save");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("btn-primary");
-			elements[i].classList.add("btn");
-		}
-		var elements = document.querySelectorAll(".pme-search, .pme-hide");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("btn-secondary");
-			elements[i].classList.add("btn");
-		}
-		var elements = document.querySelectorAll(".pme-main");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("table");
-			elements[i].classList.add("table-striped");
-		}
-		var elements = document.querySelectorAll(".pme-sortinfo, .pme-queryinfo");
-		for (var i = 0; i < elements.length; i++) {
-			elements[i].classList.add("text-muted");
-		}
-	};
-</script>
-
-</body>
-</html>
-END;
-	} else if ($CSSstylesheet) {
-		$buffer = $css_directive . $buffer;
-	}
 	// write the content include file
 	echo 'Trying to write content file to: <b>'.'./'.$contentFile.'</b><br>'.PHP_EOL;
 	$filehandle = @fopen('./'.$contentFile, 'w+');
 	if ($filehandle) {
 		fwrite($filehandle, $buffer);
+//		flush($filehandle);
 		flush();
 		fclose($filehandle);
 		echo 'phpMyEdit content file written successfully<br>';
-	} else {
+	}
+	else
+	{
 		echo 'phpMyEdit content file was NOT written due to inssufficient privileges.<br>';
 		echo 'Please copy and paste content listed below to <i>'.'./'.$contentFile.'</i> file.';
 	}
 	echo '<br><hr>';
 	echo '<pre>';
 	echo_html($buffer);
+
 	echo '</pre><hr>'.PHP_EOL;
+
 }
 
+// *********************
+//
+//  Mainline starts here
+//
+//**********************
+
+	$phpExtension = '.php';
+	$arr=array("hn","pt","un","pw","db","tb","db1");foreach($arr as $arry){if(!isset($$arry)){$$arry='';}}	//PHP v8
+	if (isset($baseFilename) && $baseFilename != '')
+	{
+		$phpFile = $baseFilename.$phpExtension;
+		$contentFile = $baseFilename.'.php';
+	}
+	else if (isset($tb))
+	{
+		$phpFile = $tb.$phpExtension;
+		$contentFile = $tb.'.php';
+	}
+	else
+	{
+		$phpFile = 'index'.$phpExtension;
+		$contentFile = 'phpMyEdit-content.php';
+	}
+
+	$self = basename($_SERVER['PHP_SELF']);
+	$buffer = '';
+
+	//    now do the main lifting
+	if (empty($submit))         // first time or cancel button
+	{
+		echo "<h1>Please log in to your MySQL database</h1>";
+		if (! isset($hn))
+			$hn = 'localhost';
+
+		if (! isset($pt))
+			$pt = '3306';
+
+		ShowLogin ($self, $hn, $pt, $un, $pw, $db, $tb);
+	}
+	else                        // process the user input
+	{
+		$havehost = true;           // assume we have host info
+		$havedb = false;            // no database info
+		$havetb = false;            // no table info
+
+		if ($hn == "")              // host present?
+			$haveuost = false;
+
+		if ($un == "")              // user present?
+			$havehost = false;
+
+		if ($pw == "")              // password present?
+
+			$havehost = false;
+
+
+		if ($havehost == true)
+		{
+			/* Connect to a MySQL database  */
+			$host = $hn;
+			if ($pt != "")
+				$host .= ":$pt";
+
+//			$db1 = @mysqli_connect($host, $un, $pw);
+			$db1 = mysqli_connect($host, $un, $pw, $db);	//PHP v8
+
+			if ($db1)
+			{
+				// check for database
+				if ($db != "")
+					$havedb = CheckForDatabase ($self, $hn, $pt, $un, $pw, $db, $tb, $db1);
+
+				if ($tb != "")
+					$havetb = CheckForDatabaseTable ($self, $hn, $pt, $un, $pw, $db, $tb, $db1);
+			}
+		}
+
+		if ($havehost == false)
+		{
+			$result = ShowLogin ($self, $hn, $pt, $un, $pw, $db, $tb);
+		}
+		else if (!$db1)
+		{
+			echo '<h2>Sorry - mysql login failed - please try again</h2>' . PHP_EOL;
+			$result = ShowLogin ($self, $hn, $pt, $un, $pw, $db, $tb);
+		}
+		else if ((! isset($db)) or ($havedb == false))
+		{
+			if (isset($db))
+				echo "<h2>Sorry - unknown database $db - please try again</h2>" . PHP_EOL;
+
+			$result = ShowSelectDatabase ($self, $hn, $pt, $un, $pw, $db1);
+		}
+		else if (!isset($tb))
+		{
+			$result = ShowSelectTable ($self, $hn, $pt, $un, $pw, $db, $db1);
+		}
+		else if ($havetb == false)
+		{
+			echo "<h2>Sorry - unknown table $tb - please try again</h2><br>" . PHP_EOL;
+			$result = ShowSelectTable ($self, $hn, $pt, $un, $pw, $db, $db1);
+		}
+		else if (!isset($id))
+	{
+			$result = ShowSelectId ($self, $hn, $pt, $un, $pw, $db, $tb, $db1);
+		}
+	else if (!isset($options))
+	{
+			$result = ShowSelectOptions ($self, $hn, $pt, $un, $pw, $db, $tb, $db1, $id);
+		}
+	else
+	{
+			$result = GenerateCode ($self, $hn, $pt, $un, $pw, $db, $tb, $db1, $id);
+		}
+	}
+
+	if ($db1)
+		mysqli_close ($db1);        // close any open connection
 ?>
 
 </body>
