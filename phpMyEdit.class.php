@@ -583,15 +583,11 @@ class phpMyEdit
 				} else {
 					$ret = $this->sd.'PMEjoin'.$field.$this->ed.'.'.$this->sd.$this->fdd[$this->fds[$field]]['values']['description'].$this->ed;
 				}
-			// TODO: remove me
-//			} elseif (0 && $this->fdd[$this->fds[$field]]['values']['column'] && ! $dont_cols) {
-//				$ret = $this->sd.'PMEjoin'.$field.$this->ed.'.'.$this->fdd[$this->fds[$field]]['values']['column'];
+			
 			} else {
 				$ret = $this->sd.'PMEtable0'.$this->ed.'.'.$this->sd.$this->fds[$field].$this->ed;
 			}
-			// TODO: not necessary, remove me!
-//			if (is_array($this->fdd[$this->fds[$field]]['values2'])) {
-//			}
+
 		}
 		return $ret;
 	}
