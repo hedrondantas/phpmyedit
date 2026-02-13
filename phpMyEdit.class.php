@@ -139,6 +139,17 @@ class phpMyEdit
 {
     // Class variables {{{
 
+	// add a default display property so $this->display['tabs'] is always defined
+    protected $display = ['tabs' => false];
+
+	// add a default directory property so $this->dir['lang'] is always defined
+	protected $dir = [
+		'class' => '',
+		'lang' => '',
+		'template' => '',
+	];
+
+
     // Database handling
     public $hn;		// hostname
     //	var $pt;		// port
@@ -677,6 +688,15 @@ class phpMyEdit
                 $qparts['orderby'] = $this->sd . $key . $this->ed;
             }
             $qparts['from'] = $dbp . $table;
+
+			// ensure $column is defined (prefer explicit config, otherwise fallback to field map)
+			$column = '';
+			if (isset($this->fdd[$field_num]['values']['column']) && $this->fdd[$field_num]['values']['column'] !== '') {
+				$column = $this->fdd[$field_num]['values']['column'];
+			} elseif (isset($this->fds[$field_num])) {
+				$column = $this->fds[$field_num];
+			}
+
             $ar = [
                 'table' => $table,
                 'column' => $column,
