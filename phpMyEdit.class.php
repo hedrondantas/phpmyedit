@@ -1402,6 +1402,11 @@ function '.$this->js['prefix'].'filter_handler(theForm, theEvent)
 			return $css . ' text-muted';
 		}
 
+		/* Add Bootstrap table classes for .pme-main */
+		if ($name === 'main') {
+			return $css . ' table table-striped table-bordered';
+		}
+
 		return $css;
 	}
 
