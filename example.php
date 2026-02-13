@@ -113,7 +113,7 @@
     // Type of key field (int/real/string/date etc.)
 
     // Sorting field(s)
-    $opts['sort_field'] = array('ID');
+    $opts['sort_field'] = ['ID'];
 
     // Number of records to display on the screen
     // Value of -1 lists all records in a table
@@ -132,13 +132,13 @@
     $opts['navigation'] = 'UG';
 
     // Display special page elements
-    $opts['display'] = array(
+    $opts['display'] = [
         'form'  => true,
         'query' => true,
         'sort'  => true,
         'time'  => true,
-        'tabs'  => true
-    );
+        'tabs'  => true,
+    ];
 
     // Set default prefixes for variables
     $opts['js']['prefix']               = 'PME_js_';
@@ -162,7 +162,7 @@ $opts['filters'] = "PMEtable0.sessions_count > 200";
 */
 
     /* Field definitions
-   
+
 Fields will be displayed left to right on the screen in the order in which they
 appear in generated list. Here are some most used field options documented.
 
@@ -199,56 +199,56 @@ appear in generated list. Here are some most used field options documented.
   descriptions fields are also possible. Check documentation for this.
 */
 
-    $opts['fdd']['ID'] = array(
+    $opts['fdd']['ID'] = [
         'name'     => 'ID',
         'select'   => 'T',
         'options'  => 'AVCPDR', // auto increment
         'maxlen'   => 11,
         'default'  => '0',
-        'sort'     => true
-    );
-    $opts['fdd']['PONID'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['PONID'] = [
         'name'     => 'PONID',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['OLTID'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['OLTID'] = [
         'name'     => 'OLTID',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['ONUID'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['ONUID'] = [
         'name'     => 'ONUID',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['ONUNO'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['ONUNO'] = [
         'name'     => 'ONUNO',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['ONUTYPE'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['ONUTYPE'] = [
         'name'     => 'ONUTYPE',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['SWVER'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['SWVER'] = [
         'name'     => 'SWVER',
         'select'   => 'T',
         'maxlen'   => 20,
-        'sort'     => true
-    );
-    $opts['fdd']['NAME'] = array(
+        'sort'     => true,
+    ];
+    $opts['fdd']['NAME'] = [
         'name'     => 'NAME',
         'select'   => 'T',
         'maxlen'   => 100,
-        'sort'     => true
-    );
+        'sort'     => true,
+    ];
 
     // Now important call to phpMyEdit
     require_once 'phpMyEdit.class.php';
