@@ -253,8 +253,9 @@ function ShowSelectDatabase($self, $hn, $pt, $un, $pw, $db1)
         $result = EchoFormHiddenInput($self, $hn, $pt, $un, $pw, "", "", "", "");
 
         echo '
-			<table border="1" cellpadding="1" cellspacing="1" summary="Database selection">' . PHP_EOL;
+            <table border="1" cellpadding="1" cellspacing="1" summary="Database selection">' . PHP_EOL;
 
+        $checked = '';
         while ($row = mysqli_fetch_assoc($dbs)) {
             $db = $row['Database'];
             echo '<tr><td><input' . $checked . ' type="radio" name="db" value="' . $db . '"></td><td>' . $db . '</td></tr>' . PHP_EOL;
