@@ -1379,7 +1379,34 @@ function '.$this->js['prefix'].'filter_handler(theForm, theEvent)
 		if ($postfix) {
 			$elements[] = $postfix;
 		}
-		return join($this->css['separator'], $elements);
+		$css = join($this->css['separator'], $elements);
+		
+		/* Add Bootstrap button classes for delete controls */
+		if ($name === 'delete') {
+			return $css . ' btn btn-danger';
+		}
+
+		/* Add Bootstrap button classes for .pme-cancel, .pme-more, .pme-next, .pme-prev, .pme-first, .pme-goto, .pme-last, .pme-change, .pme-view, .pme-copy, .pme-clear, .pme-query controls */
+		if ($name === 'more' || $name === 'last' || $name === 'next' || $name === 'prev' || $name === 'first' || $name === 'goto' || $name === 'change' || $name === 'view' || $name === 'copy' || $name === 'clear' || $name === 'query' || $name === 'cancel') {
+			return $css . ' btn btn-light';
+		}
+
+		/* Add Bootstrap button classes for .pme-add, .pme-save controls */
+		if ($name === 'add' || $name === 'save') {
+			return $css . ' btn btn-primary';
+		}
+
+		/* Add Bootstrap button classes for .pme-search, .pme-hide controls */
+		if ($name === 'search' || $name === 'hide') {
+			return $css . ' btn btn-secondary';
+		}
+
+		/* Add Bootstrap button classes for .pme-sortinfo, .pme-queryinfo controls */
+		if ($name === 'sortinfo' || $name === 'queryinfo') {
+			return $css . ' text-muted';
+		}
+
+		return $css;
 	}
 
 	/**
