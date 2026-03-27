@@ -35,17 +35,16 @@
 /* Update to current version: https://github.com/Rajah01/phpMyEdit.class.php-PHPv8 */
 
 ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+	<meta charset="utf-8">
 	<title>phpMyEdit Setup</title>
 	 <!-- CSS only -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 	<style type="text/css">
-	<!--
 		body  { font-family: "Verdana", "Arial", "Sans-Serif"; text-align: left }
 		h1    { color: #004d9c; font-size: 13pt; font-weight: bold }
 		h2    { color: #004d9c; font-size: 11pt; font-weight: bold }
@@ -63,10 +62,9 @@
 		margin: 0;
 		border-top-width: 1px;
 		}
-	-->
 	</style>
 </head>
-<body bgcolor="white">
+<body>
 
 <?php
 // **************************
@@ -75,33 +73,25 @@
 //
 // **************************
 
-    if (! defined('PHP_EOL')) {
-        define('PHP_EOL', strtoupper(substr(PHP_OS, 0, 3) == 'WIN') ? "\r\n" : (strtoupper(substr(PHP_OS, 0, 3) == 'MAC') ? "\r" : "\n")); // PHP v8
-    }
+$hn = $_POST['hn'] ?? '';            // host (default localhost)
+$pt = $_POST['pt'] ?? '';            // port (default 3306)
+$un = $_POST['un'] ?? '';            // user name
+$pw = $_POST['pw'] ?? '';            // password
+if (!empty($_POST['db'])) {
+    $db = $_POST['db'];
+}     // database (optional)
+if (!empty($_POST['tb'])) {
+    $tb = $_POST['tb'];
+}         // table name (optional)
+$id = $_POST['id'] ?? '';            // table unique key
+$submit = $_POST['submit'] ?? '';    // submit button
 
-$hn = @$_POST['hn'];            // host (default localhost)
-$pt = @$_POST['pt'];            // port (default 3306)
-$un = @$_POST['un'];            // user name
-$pw = @$_POST['pw'];            // password
-if (isset($_POST['db'])) {
-    if (strlen($_POST['db']) > 0) { //PHP v8
-        $db = @$_POST['db'];
-    }
-}     // database (optional)	//PHP v8
-if (isset($_POST['tb'])) {
-    if (strlen($_POST['tb']) > 0) { //PHP v8
-        $tb = @$_POST['tb'];
-    }
-}         // table name (optional)		//PHP v8
-$id = @$_POST['id'];            // table unique key
-$submit = @$_POST['submit'];    // submit button
-
-$options       = @$_POST['options'];
-$baseFilename  = @$_POST['baseFilename'];
-$pageTitle     = @$_POST['pageTitle'];
-$pageHeader    = @$_POST['pageHeader'];
-$HTMLissues    = @$_POST['HTMLissues'];
-$CSSstylesheet = @$_POST['CSSstylesheet'];
+$options       = $_POST['options'] ?? '';
+$baseFilename  = $_POST['baseFilename'] ?? '';
+$pageTitle     = $_POST['pageTitle'] ?? '';
+$pageHeader    = $_POST['pageHeader'] ?? '';
+$HTMLissues    = $_POST['HTMLissues'] ?? '';
+$CSSstylesheet = $_POST['CSSstylesheet'] ?? '';
 
 
 // ***************************
@@ -168,8 +158,8 @@ function get_versions()
         'setup'   => "$dirname/phpMyEditSetup.php",
         'core'    => "$dirname/phpMyEdit.class.php",
         'version' => "$dirname/doc/VERSION"] as $type => $file) {
-        if (@file_exists($file) && @is_readable($file)) {
-            if (($f = fopen($file, 'r')) == false) {
+        if (file_exists($file) && is_readable($file)) {
+            if (($f = fopen($file, 'r')) === false) {
                 continue;
             }
             $str = trim(fread($f, 4096));
@@ -214,7 +204,7 @@ function ShowLogin($self, $hn, $pt, $un, $pw, $db, $tb)
 {
     echo '
 		<form action="' . htmlspecialchars($self) . '" method="POST">
-		<table border="1" cellpadding="1" cellspacing="0" summary="Login form">
+		<table>
 		<tr>
 		<td>Hostname:</td>
 		<td><input type="text" name="hn" value="' . htmlspecialchars($hn) . '"></td>
@@ -250,10 +240,10 @@ function ShowSelectDatabase($self, $hn, $pt, $un, $pw, $db1)
     if ($error == false) {
         echo '<h1>Please select a database</h1>' . PHP_EOL;
 
-        $result = EchoFormHiddenInput($self, $hn, $pt, $un, $pw, "", "", "", "");
+        EchoFormHiddenInput($self, $hn, $pt, $un, $pw, "", "", "", "");
 
         echo '
-            <table border="1" cellpadding="1" cellspacing="1" summary="Database selection">' . PHP_EOL;
+            <table>' . PHP_EOL;
 
         $checked = '';
         while ($row = mysqli_fetch_assoc($dbs)) {
@@ -310,10 +300,10 @@ function ShowSelectTable($self, $hn, $pt, $un, $pw, $db, $db1)
 {
     echo '<h1>Please select a table from database: ' . htmlspecialchars($db) . '</h1>' . PHP_EOL;
 
-    $result = EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, "", "", "");
+    EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, "", "", "");
 
     echo '
-		<table border="1" cellpadding="1" cellspacing="1" summary="Table selection">' . PHP_EOL;
+		<table>' . PHP_EOL;
 
     $stmt = "show tables from $db";
     $result = mysqli_query($db1, $stmt);
@@ -341,9 +331,9 @@ function ShowSelectId($self, $hn, $pt, $un, $pw, $db, $tb, $db1)
 		Please note, that there were problems reported by phpMyEdit users 		regarding using MySQL reserved word as unique key name (the example for this is "key" name). Thus we recommend you to use another name of unique key. Usage of "id" or "ID" should be safe and good idea.
 		</p>' . PHP_EOL;
 
-    $result = EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, $tb, "", "");
+    EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, $tb, "", "");
 
-    echo '		<table border="1" cellpadding="1" cellspacing="1" summary="Key selection">' . PHP_EOL;
+    echo '		<table>' . PHP_EOL;
 
     $stmt = "show columns from $tb in $db";
     $result = mysqli_query($db1, $stmt);
@@ -441,14 +431,14 @@ function ShowSelectOptions($self, $hn, $pt, $un, $pw, $db, $tb, $db1, $id)
     echo "select options: $hn, $pt, $un, $pw, $db, $tb, $id<br>";
     echo '<h1>Please select additional options</h1>' . PHP_EOL;
 
-    $result = EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, $tb, $id, "");
+    EchoFormHiddenInput($self, $hn, $pt, $un, $pw, $db, $tb, $id, "");
 
-    echo '		<table border="1" cellpadding="1" cellspacing="1" summary="Additional options">
-		<tr><td>Base filename</td><td><input type="text" name=baseFilename value ="' . htmlspecialchars($tb) . '"></td></tr>
-		<tr><td>Page title</td><td><input type="text" name=pageTitle value ="' . htmlspecialchars($tb) . '"></td></tr>
-		<tr><td>Page header</td><td><input type="checkbox" name=pageHeader></td></tr>
-		<tr><td>HTML header &amp; footer</td><td><input type="checkbox" name=HTMLissues></td></tr>
-		<tr><td>CSS basic stylesheet</td><td><input checked type="checkbox" name=CSSstylesheet></td></tr>
+    echo '		<table>
+		<tr><td>Base filename</td><td><input type="text" name="baseFilename" value="' . htmlspecialchars($tb) . '"></td></tr>
+		<tr><td>Page title</td><td><input type="text" name="pageTitle" value="' . htmlspecialchars($tb) . '"></td></tr>
+		<tr><td>Page header</td><td><input type="checkbox" name="pageHeader"></td></tr>
+		<tr><td>HTML header &amp; footer</td><td><input type="checkbox" name="HTMLissues"></td></tr>
+		<tr><td>CSS basic stylesheet</td><td><input checked type="checkbox" name="CSSstylesheet"></td></tr>
 		</table><br>
 		<input type="submit" name="submit" value="Submit">
 		<input type="submit" name="cancel" value="Cancel">
@@ -733,7 +723,7 @@ END;
         build_buffer('$opts[\'fdd\'][\'' . $field . '\'] = array(');
         build_buffer("  'name'     => '" . str_replace('\'', '\\\'', $fn) . "',");
 
-        if ((substr($type, 0, 3) == 'set') or (substr($type, 0, 4) == 'enum')) {
+        if ((substr($type, 0, 3) == 'set') || (substr($type, 0, 4) == 'enum')) {
             build_buffer("  'select'   => 'M',");
         } else {
             build_buffer("  'select'   => 'T',");
@@ -752,14 +742,14 @@ END;
 
         $length = DecodeType($type);
         $len = $length [1];
-        if (($type == 'blob') or ($type == 'text')) {
-            $DoNothing = true;
+        if (($type == 'blob') || ($type == 'text')) {
+            // no maxlen for blob/text types
         } else {
             build_buffer("  'maxlen'   => $len,");
         }
 
         // blobs -> textarea
-        if (($type == 'blob') or ($type == 'text')) {
+        if (($type == 'blob') || ($type == 'text')) {
             build_buffer("  'textarea' => array(");
             build_buffer("    'rows' => 5,");
             build_buffer("    'cols' => 80),");
@@ -815,7 +805,7 @@ new phpMyEdit(\$opts);
         fclose($filehandle);
         echo 'phpMyEdit content file written successfully<br>';
     } else {
-        echo 'phpMyEdit content file was NOT written due to inssufficient privileges.<br>';
+        echo 'phpMyEdit content file was NOT written due to insufficient privileges.<br>';
         echo 'Please copy and paste content listed below to <i>' . './' . $contentFile . '</i> file.';
     }
     echo '<br><hr>';
@@ -871,7 +861,7 @@ if (empty($submit)) {         // first time or cancel button
     $havetb = false;            // no table info
 
     if ($hn == "") {              // host present?
-        $haveuost = false;
+        $havehost = false;
     }
 
     if ($un == "") {              // user present?
@@ -911,7 +901,7 @@ if (empty($submit)) {         // first time or cancel button
     } elseif (!$db1) {
         echo '<h2>Sorry - mysql login failed - please try again</h2>' . PHP_EOL;
         $result = ShowLogin($self, $hn, $pt, $un, $pw, $db, $tb);
-    } elseif ((! isset($db)) or ($havedb == false)) {
+    } elseif (!isset($db) || $havedb == false) {
         if (isset($db)) {
             echo "<h2>Sorry - unknown database $db - please try again</h2>" . PHP_EOL;
         }
